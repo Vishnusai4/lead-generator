@@ -1,0 +1,30 @@
+# Core Dependencies for Zendesk Lead Finder
+# ==========================================
+
+# HTTP Requests and Web Scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Browser Automation (for JavaScript-heavy sites)
+selenium>=4.15.0
+
+# Anti-Bot Bypassing
+cloudscraper>=1.2.71
+fake-useragent>=1.4.0
+
+# Google Sheets Integration
+gspread>=5.12.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+
+# Data Manipulation
+pandas>=2.1.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Additional Utilities
+urllib3>=2.0.0
+certifi>=2023.7.22
