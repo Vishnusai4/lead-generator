@@ -1,0 +1,113 @@
+Company Name,Website,Industry,Company Size,Location,Description,LinkedIn URL,Uses Zendesk,Source,Date Added,Status,Notes,Contact Found,Contact Name,Contact Email,Contact LinkedIn,Last Updated
+Airbnb,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Uber,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Slack,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Shopify,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+GitHub,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Dropbox,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Box,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Mailchimp,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Squarespace,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Asana,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Trello,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Atlassian,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+HubSpot,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Zoom,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Twilio,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+SendGrid,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Datadog,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+PagerDuty,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+MongoDB,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Elastic,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Okta,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Auth0,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Cloudflare,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+DigitalOcean,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Heroku,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+New Relic,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Splunk,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Docker,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Kubernetes,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Red Hat,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+VMware,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+ServiceNow,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Salesforce,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Adobe,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Autodesk,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+DoorDash,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Postmates,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Grubhub,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+UberEats,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Instacart,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Deliveroo,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Just Eat,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Toast,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+ChowNow,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+OpenTable,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Yelp,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Zomato,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Warby Parker,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Allbirds,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Casper,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Away,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Everlane,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Glossier,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Wayfair,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Etsy,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Poshmark,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+ThredUp,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+StockX,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+GOAT,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Farfetch,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+ModCloth,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Bonobos,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Peloton,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+ClassPass,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Mindbody,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Headspace,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Calm,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Strava,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+MyFitnessPal,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Fitbit,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Stripe,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Square,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Robinhood,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Coinbase,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Revolut,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Chime,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Plaid,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Brex,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Affirm,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Klarna,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Teladoc,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Doctor On Demand,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+One Medical,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Zocdoc,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Oscar Health,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Hims & Hers,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Booking.com,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+TripAdvisor,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Expedia,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Kayak,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Hopper,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+GetYourGuide,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Vrbo,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Spotify,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+SoundCloud,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Vimeo,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Medium,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Substack,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Patreon,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Twitch,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Coursera,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Udemy,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Khan Academy,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Duolingo,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Chegg,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Course Hero,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Skillshare,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Zillow,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Redfin,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Compass,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Opendoor,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
+Better.com,,,,,,,Yes,Known Customer Database,2025-11-08 08:22:01,New,,No,,,,2025-11-08 08:22:01
