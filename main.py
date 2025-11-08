@@ -6,11 +6,13 @@ This is the main orchestrator for the lead generation system.
 It coordinates scraping, enrichment, and CRM updates.
 
 Usage:
-    python main.py --mode full          # Full pipeline run
+    python main.py --mode full          # Full pipeline run (saves to CSV)
     python main.py --mode test          # Test run (limited data)
     python main.py --mode g2-only       # Only scrape G2
     python main.py --mode zendesk-only  # Only scrape Zendesk
     python main.py --no-enrich          # Skip enrichment step
+    python main.py --output csv         # Save to CSV (default)
+    python main.py --output sheets      # Save to Google Sheets (requires setup)
 """
 
 import sys
@@ -18,19 +20,9 @@ import argparse
 from datetime import datetime
 
 # Import our modules
-try:
-    import config
-except ImportError:
-    print("=" * 80)
-    print("ERROR: config.py not found!")
-    print("=" * 80)
-    print("\nPlease create config.py from config_template.py:")
-    print("  1. cp config_template.py config.py")
-    print("  2. Edit config.py with your settings")
-    print("  3. Run this script again")
-    print("\n" + "=" * 80)
-    sys.exit(1)
+import config
 
+from csv_crm import CSVCRM
 from sheets_crm import SheetsCRM
 from scraper_g2 import G2Scraper
 from scraper_zendesk import ZendeskShowcaseScraper
@@ -43,26 +35,36 @@ class LeadGenPipeline:
     Main lead generation pipeline that orchestrates all components.
     """
 
-    def __init__(self):
+    def __init__(self, output_mode='csv', csv_file='leads.csv'):
         """
         Initialize the lead generation pipeline.
+
+        Args:
+            output_mode (str): 'csv' or 'sheets'
+            csv_file (str): Path to CSV file (if using CSV mode)
         """
         print("\n" + "=" * 80)
         print(" " * 20 + "ZENDESK LEAD FINDER")
         print("=" * 80)
         print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Output mode: {output_mode.upper()}")
         print("=" * 80 + "\n")
 
         # Initialize components
         print("Initializing components...")
 
         try:
-            # Initialize Google Sheets CRM
-            self.crm = SheetsCRM(
-                credentials_path=config.GOOGLE_SHEETS_CREDENTIALS_PATH,
-                sheet_name=config.GOOGLE_SHEET_NAME,
-                worksheet_name=config.WORKSHEET_NAME
-            )
+            # Initialize CRM (CSV or Google Sheets)
+            if output_mode == 'csv':
+                self.crm = CSVCRM(csv_file_path=csv_file)
+                self.output_mode = 'csv'
+            else:
+                self.crm = SheetsCRM(
+                    credentials_path=config.GOOGLE_SHEETS_CREDENTIALS_PATH,
+                    sheet_name=config.GOOGLE_SHEET_NAME,
+                    worksheet_name=config.WORKSHEET_NAME
+                )
+                self.output_mode = 'sheets'
 
             # Initialize G2 scraper
             self.g2_scraper = G2Scraper(
@@ -85,15 +87,24 @@ class LeadGenPipeline:
 
             print("\nAll components initialized successfully!")
             print(f"Current database size: {self.crm.get_company_count()} companies")
-            print(f"Spreadsheet URL: {self.crm.get_spreadsheet_url()}\n")
+
+            if self.output_mode == 'csv':
+                print(f"CSV file: {self.crm.get_csv_path()}\n")
+            else:
+                print(f"Spreadsheet URL: {self.crm.get_spreadsheet_url()}\n")
 
         except Exception as e:
             print(f"\nERROR: Failed to initialize components: {str(e)}")
-            print("\nPlease check:")
-            print("  1. config.py is properly configured")
-            print("  2. credentials.json exists and is valid")
-            print("  3. Google Sheet is shared with service account")
-            print("  4. All dependencies are installed")
+            if self.output_mode == 'sheets':
+                print("\nPlease check:")
+                print("  1. config.py is properly configured")
+                print("  2. credentials.json exists and is valid")
+                print("  3. Google Sheet is shared with service account")
+                print("  4. All dependencies are installed")
+            else:
+                print("\nPlease check:")
+                print("  1. config.py exists")
+                print("  2. All dependencies are installed")
             sys.exit(1)
 
     def run_full_pipeline(self, enable_enrichment=True):
@@ -160,11 +171,11 @@ class LeadGenPipeline:
             print("STEP 5: ENRICHMENT (SKIPPED)")
             print("-" * 80)
 
-        # Step 6: Save to Google Sheets
+        # Step 6: Save to database
         print("\n" + "-" * 80)
-        print("STEP 6: SAVING TO GOOGLE SHEETS")
+        print(f"STEP 6: SAVING TO {self.output_mode.upper()} DATABASE")
         print("-" * 80)
-        save_stats = self.crm.add_companies_batch(all_companies, delay=0.5)
+        save_stats = self.crm.add_companies_batch(all_companies, delay=0.5 if self.output_mode == 'sheets' else 0.0)
 
         # Final summary
         print("\n" + "=" * 80)
@@ -175,7 +186,12 @@ class LeadGenPipeline:
         print(f"  New companies added: {save_stats['added']}")
         print(f"  Duplicates skipped: {save_stats['duplicates']}")
         print(f"  Current database size: {self.crm.get_company_count()} companies")
-        print(f"\nView your leads: {self.crm.get_spreadsheet_url()}")
+
+        if self.output_mode == 'csv':
+            print(f"\nCSV file: {self.crm.get_csv_path()}")
+        else:
+            print(f"\nView your leads: {self.crm.get_spreadsheet_url()}")
+
         print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 80 + "\n")
 
@@ -266,12 +282,15 @@ class LeadGenPipeline:
         if enable_enrichment and config.ENABLE_ENRICHMENT:
             companies = self.enricher.enrich_batch(companies)
 
-        # Save to sheets
-        save_stats = self.crm.add_companies_batch(companies, delay=0.5)
+        # Save to database
+        save_stats = self.crm.add_companies_batch(companies, delay=0.5 if self.output_mode == 'sheets' else 0.0)
 
         print(f"\nG2 scraping complete!")
         print(f"New companies added: {save_stats['added']}")
-        print(f"View leads: {self.crm.get_spreadsheet_url()}\n")
+        if self.output_mode == 'csv':
+            print(f"CSV file: {self.crm.get_csv_path()}\n")
+        else:
+            print(f"View leads: {self.crm.get_spreadsheet_url()}\n")
 
     def run_zendesk_only(self, enable_enrichment=True):
         """
@@ -291,12 +310,15 @@ class LeadGenPipeline:
         if enable_enrichment and config.ENABLE_ENRICHMENT:
             companies = self.enricher.enrich_batch(companies)
 
-        # Save to sheets
-        save_stats = self.crm.add_companies_batch(companies, delay=0.5)
+        # Save to database
+        save_stats = self.crm.add_companies_batch(companies, delay=0.5 if self.output_mode == 'sheets' else 0.0)
 
         print(f"\nZendesk scraping complete!")
         print(f"New companies added: {save_stats['added']}")
-        print(f"View leads: {self.crm.get_spreadsheet_url()}\n")
+        if self.output_mode == 'csv':
+            print(f"CSV file: {self.crm.get_csv_path()}\n")
+        else:
+            print(f"View leads: {self.crm.get_spreadsheet_url()}\n")
 
     def _deduplicate_companies(self, companies):
         """
@@ -335,10 +357,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py --mode full          # Run full pipeline
+  python main.py --mode full          # Run full pipeline (saves to CSV)
   python main.py --mode test          # Run test mode
   python main.py --mode g2-only       # Only scrape G2
   python main.py --no-enrich          # Skip enrichment
+  python main.py --output csv         # Save to CSV (default)
+  python main.py --output sheets      # Save to Google Sheets
+  python main.py --csv-file leads.csv # Specify CSV filename
         """
     )
 
@@ -347,6 +372,19 @@ Examples:
         choices=['full', 'test', 'g2-only', 'zendesk-only'],
         default='full',
         help='Pipeline mode to run (default: full)'
+    )
+
+    parser.add_argument(
+        '--output',
+        choices=['csv', 'sheets'],
+        default='csv',
+        help='Output format: csv or sheets (default: csv)'
+    )
+
+    parser.add_argument(
+        '--csv-file',
+        default='leads.csv',
+        help='CSV filename (default: leads.csv)'
     )
 
     parser.add_argument(
@@ -359,7 +397,7 @@ Examples:
 
     try:
         # Initialize pipeline
-        pipeline = LeadGenPipeline()
+        pipeline = LeadGenPipeline(output_mode=args.output, csv_file=args.csv_file)
 
         # Run selected mode
         if args.mode == 'test':

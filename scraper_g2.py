@@ -128,10 +128,16 @@ class G2Scraper:
 
             print(f"Extracted {len(companies)} companies from page {page_num}")
 
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Failed to fetch page {page_num}: {str(e)}")
         except Exception as e:
-            print(f"ERROR: Failed to parse page {page_num}: {str(e)}")
+            # Handle all request and parsing errors
+            error_type = type(e).__name__
+            if '403' in str(e) or 'Forbidden' in str(e):
+                print(f"WARNING: G2 blocked request (403 Forbidden) - anti-bot protection")
+                print(f"         This is expected. Known customers will still work!")
+            elif 'HTTPError' in error_type or 'RequestException' in error_type:
+                print(f"ERROR: Failed to fetch page {page_num}: {str(e)}")
+            else:
+                print(f"ERROR: Failed to parse page {page_num}: {str(e)}")
 
         return companies
 
