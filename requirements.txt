@@ -13,6 +13,7 @@ playwright>=1.40.0
 # Anti-Bot Bypassing
 cloudscraper>=1.2.71
 fake-useragent>=1.4.0
+scraperapi-sdk>=0.2.1
 
 # Google Sheets Integration
 gspread>=5.12.0

@@ -45,7 +45,8 @@ class ZendeskDetector:
     BLOCKING_STATUS_CODES = {403, 406, 429, 503}
 
     def __init__(self, config_path: str = "config.yaml", use_cloudscraper: bool = False,
-                 use_playwright: bool = False, no_escalation: bool = False):
+                 use_playwright: bool = False, no_escalation: bool = False,
+                 scraperapi_key: str = None):
         """
         Initialize detector with configuration.
 
@@ -54,6 +55,7 @@ class ZendeskDetector:
             use_cloudscraper: Enable cloudscraper for Cloudflare bypass
             use_playwright: Force Playwright for all domains
             no_escalation: Disable automatic escalation
+            scraperapi_key: ScraperAPI key for anti-bot bypass
         """
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -67,8 +69,14 @@ class ZendeskDetector:
         self.force_playwright = use_playwright and PLAYWRIGHT_AVAILABLE
         self.no_escalation = no_escalation
 
+        # ScraperAPI configuration
+        import os
+        self.scraperapi_key = scraperapi_key or os.getenv('SCRAPERAPI_KEY')
+        self.use_scraperapi = bool(self.scraperapi_key)
+
         logger.info(f"Initialized detector: threshold={self.threshold}, "
-                   f"cloudscraper={self.use_cloudscraper}, playwright={PLAYWRIGHT_AVAILABLE}")
+                   f"cloudscraper={self.use_cloudscraper}, playwright={PLAYWRIGHT_AVAILABLE}, "
+                   f"scraperapi={self.use_scraperapi}")
 
     def detect(self, domain: str) -> Dict:
         """
@@ -125,7 +133,19 @@ class ZendeskDetector:
             logger.info(f"{domain}: No escalation needed (score={fast_result['score']})")
             return fast_result
 
-        # Stage 2: Try cloudscraper (if enabled and blocked)
+        # Stage 2: Try ScraperAPI (if enabled and blocked)
+        if self.use_scraperapi and blocked:
+            logger.info(f"{domain}: Attempting ScraperAPI bypass")
+            scraperapi_result = self._scraperapi_check(domain)
+
+            # If ScraperAPI succeeded and wasn't blocked
+            if not scraperapi_result.get('blocked_by_waf', False):
+                logger.info(f"{domain}: ScraperAPI bypass successful")
+                return scraperapi_result
+
+            logger.warning(f"{domain}: ScraperAPI also blocked")
+
+        # Stage 3: Try cloudscraper (if enabled and blocked)
         if self.use_cloudscraper and blocked:
             logger.info(f"{domain}: Attempting cloudscraper bypass")
             cloudscraper_result = self._cloudscraper_check(domain)
@@ -137,7 +157,7 @@ class ZendeskDetector:
 
             logger.info(f"{domain}: Cloudscraper also blocked, trying Playwright")
 
-        # Stage 3: Playwright fallback
+        # Stage 4: Playwright fallback
         if PLAYWRIGHT_AVAILABLE:
             logger.info(f"{domain}: Running Playwright check")
             playwright_result = self._detect_with_playwright(domain, method='playwright_escalated')
@@ -249,6 +269,111 @@ class ZendeskDetector:
                 'score': 0,
                 'signals': {},
                 'method': 'fast_error',
+                'blocked_by_waf': False,
+                'original_status_code': original_status_code or 0,
+                'original_headers': json.dumps(original_headers),
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+
+    def _scraperapi_check(self, domain: str) -> Dict:
+        """
+        Check using ScraperAPI to bypass anti-bot protection.
+
+        Returns:
+            dict: Detection result
+        """
+        if not self.scraperapi_key:
+            return {'blocked_by_waf': True, 'error': 'ScraperAPI key not configured'}
+
+        signals = {}
+        target_url = f"https://{domain}"
+        blocked_by_waf = False
+        original_status_code = None
+        original_headers = {}
+
+        try:
+            # Route through ScraperAPI
+            api_url = "http://api.scraperapi.com"
+            params = {
+                'api_key': self.scraperapi_key,
+                'url': target_url,
+                'render': 'false'  # Set to 'true' for JS rendering (costs more credits)
+            }
+
+            response = requests.get(api_url, params=params, timeout=60)
+
+            original_status_code = response.status_code
+            original_headers = dict(response.headers)
+
+            # Check if still blocked
+            if response.status_code in self.BLOCKING_STATUS_CODES:
+                blocked_by_waf = True
+                logger.warning(f"{domain}: ScraperAPI also blocked ({response.status_code})")
+
+                return {
+                    'domain': domain,
+                    'detected': False,
+                    'score': 0,
+                    'signals': {},
+                    'method': 'scraperapi_blocked',
+                    'blocked_by_waf': True,
+                    'original_status_code': original_status_code,
+                    'original_headers': json.dumps(original_headers),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+
+            response.raise_for_status()
+
+            # Parse HTML
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Check for Zendesk signals (same as fast_check)
+            for script in soup.find_all('script', src=True):
+                src = script['src'].lower()
+                if 'zendesk.com' in src or 'assets.zendesk' in src:
+                    signals['script_zendesk'] = True
+                if 'zdassets.com' in src or 'zdcdn' in src:
+                    signals['cdn_zdassets'] = True
+
+            for link in soup.find_all('a', href=True):
+                href = link['href'].lower()
+                if '.zendesk.com' in href:
+                    if 'help.' in href or 'support.' in href:
+                        signals['help_subdomain_link'] = True
+                if '/hc/' in href:
+                    signals['hc_path'] = True
+
+            for elem in soup.find_all(class_=True):
+                classes = ' '.join(elem['class']).lower()
+                if 'zendesk' in classes or 'zopim' in classes or 'zd-widget' in classes:
+                    signals['dom_class_zendesk'] = True
+                    break
+
+            score = self._calculate_score(signals)
+
+            logger.info(f"{domain}: ScraperAPI check - {len(signals)} signals, score={score}")
+
+            return {
+                'domain': domain,
+                'detected': score >= self.threshold,
+                'score': score,
+                'signals': signals,
+                'method': 'scraperapi',
+                'blocked_by_waf': False,
+                'original_status_code': original_status_code,
+                'original_headers': json.dumps(original_headers),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"{domain}: ScraperAPI request failed - {str(e)}")
+            return {
+                'domain': domain,
+                'detected': False,
+                'score': 0,
+                'signals': {},
+                'method': 'scraperapi_error',
                 'blocked_by_waf': False,
                 'original_status_code': original_status_code or 0,
                 'original_headers': json.dumps(original_headers),

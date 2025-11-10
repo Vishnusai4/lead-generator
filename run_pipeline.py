@@ -56,11 +56,13 @@ class LeadPipeline:
         self.args = args
 
         # Initialize detector
+        scraperapi_key = os.getenv('SCRAPERAPI_KEY')
         self.detector = ZendeskDetector(
             config_path=args.config,
             use_cloudscraper=args.use_cloudscraper,
             use_playwright=args.use_playwright,
-            no_escalation=args.no_escalation
+            no_escalation=args.no_escalation,
+            scraperapi_key=scraperapi_key
         )
 
         # Initialize enricher (if not disabled)
