@@ -1,0 +1,77 @@
+# Zendesk Detection Pipeline Configuration
+# ==========================================
+
+# Detection Signal Weights
+# Higher weights = stronger indicator of Zendesk usage
+detection:
+  weights:
+    script_zendesk: 60          # <script src="...zendesk.com...">
+    cdn_zdassets: 60            # <script src="...zdassets.com...">
+    help_subdomain_link: 80     # <a href="help.*.zendesk.com">
+    hc_path: 40                 # /hc/ in URLs
+    window_ze: 120              # window.zE exists (JS global)
+    window_zendesk: 120         # window.Zendesk exists
+    xhr_zendesk: 100            # XHR requests to *.zendesk.com
+    cookie_zendesk: 40          # Zendesk cookies detected
+    dom_class_zendesk: 30       # CSS classes with 'zendesk'
+
+  # Scoring threshold - if score >= threshold, detected = True
+  threshold: 100
+
+  # Cache detection results for this many days
+  cache_days: 30
+
+  # Playwright fallback: only run if fast_check score is in this range
+  playwright_fallback_min: 1   # Must have some signals
+  playwright_fallback_max: 99  # But below threshold
+
+# Concurrency & Rate Limiting
+concurrency:
+  max_fast_check_threads: 10   # Parallel HTML checks
+  max_playwright_workers: 3    # Concurrent Playwright browsers
+  requests_per_second: 1.0     # Rate limit per domain
+
+# HTTP Settings
+http:
+  timeout: 30                  # Request timeout (seconds)
+  max_retries: 3              # Retry attempts
+  retry_backoff_base: 2       # Exponential backoff base
+  user_agent: "Mozilla/5.0 (compatible; ZendeskDetector/1.0; +https://github.com/your-repo)"
+  respect_robots_txt: true    # Honor robots.txt (use --ignore-robots to override)
+
+# Enrichment
+enrichment:
+  enabled: true
+  providers:
+    - clearbit              # Requires CLEARBIT_API_KEY env var
+    - fallback             # Free scraping/whois fallback
+
+  # US-only filtering
+  country_filter: "US"      # Only keep US companies
+
+  # Fields to extract
+  fields:
+    - company_name
+    - employees
+    - industry
+    - country
+    - state
+    - city
+    - linkedin_url
+
+# Logging
+logging:
+  level: INFO               # DEBUG, INFO, WARNING, ERROR
+  file: pipeline.log
+  format: json              # json or text
+
+# Storage
+storage:
+  sqlite_db: leads.db
+  csv_output: leads.csv
+
+# API
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_enabled: true

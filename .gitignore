@@ -198,8 +198,9 @@ $RECYCLE.BIN/
 # DATA FILES
 # ==============================================================================
 
-# CSV and Excel files
+# CSV and Excel files (except examples)
 *.csv
+!examples/*.csv
 *.xlsx
 *.xls
 
