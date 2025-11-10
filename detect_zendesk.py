@@ -1,41 +1,59 @@
 """
-Zendesk Detection Module
+Zendesk Detection Module with Escalation Logic
 
-Two-stage detection system:
-1. Fast HTML heuristic checks (requests + BeautifulSoup)
-2. JavaScript-rendered fallback (Playwright for headless browser)
+Implements a three-tier detection system:
+1. Fast HTML check (requests)
+2. Cloudscraper (for Cloudflare bypass)
+3. Playwright (full browser automation)
 
-Scoring based on weighted signals with configurable threshold.
+Automatically escalates when bot-blocking detected (403, 406, 429).
 """
 
 import re
 import logging
+import json
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import yaml
-from datetime import datetime, timedelta
+
+# Try to import optional dependencies
+try:
+    import cloudscraper
+    CLOUDSCRAPER_AVAILABLE = True
+except ImportError:
+    CLOUDSCRAPER_AVAILABLE = False
+
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 
 class ZendeskDetector:
     """
-    Detects Zendesk usage on company websites using a two-stage approach.
+    Detects Zendesk usage with automatic escalation on bot-blocking.
     """
 
-    def __init__(self, config_path: str = "config.yaml"):
+    # Status codes that indicate bot-blocking
+    BLOCKING_STATUS_CODES = {403, 406, 429, 503}
+
+    def __init__(self, config_path: str = "config.yaml", use_cloudscraper: bool = False,
+                 use_playwright: bool = False, no_escalation: bool = False):
         """
-        Initialize the detector with configuration.
+        Initialize detector with configuration.
 
         Args:
-            config_path: Path to YAML configuration file
+            config_path: Path to YAML configuration
+            use_cloudscraper: Enable cloudscraper for Cloudflare bypass
+            use_playwright: Force Playwright for all domains
+            no_escalation: Disable automatic escalation
         """
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -45,90 +63,133 @@ class ZendeskDetector:
         self.timeout = self.config['http']['timeout']
         self.user_agent = self.config['http']['user_agent']
 
-        logger.info(f"Initialized ZendeskDetector with threshold={self.threshold}")
+        self.use_cloudscraper = use_cloudscraper and CLOUDSCRAPER_AVAILABLE
+        self.force_playwright = use_playwright and PLAYWRIGHT_AVAILABLE
+        self.no_escalation = no_escalation
+
+        logger.info(f"Initialized detector: threshold={self.threshold}, "
+                   f"cloudscraper={self.use_cloudscraper}, playwright={PLAYWRIGHT_AVAILABLE}")
 
     def detect(self, domain: str) -> Dict:
         """
-        Main detection method - combines fast check and optional Playwright fallback.
+        Main detection with automatic escalation.
 
-        Args:
-            domain: Company domain (e.g., 'shopify.com')
-
-        Returns:
-            dict: {
-                'domain': str,
-                'detected': bool,
-                'score': int,
-                'signals': dict,
-                'method': str,  # 'fast' or 'playwright'
-                'timestamp': str
-            }
-        """
-        logger.info(f"Detecting Zendesk on {domain}")
-
-        # Stage 1: Fast HTML check
-        fast_result = self.fast_check(domain)
-
-        # Check if we need Playwright fallback
-        fallback_min = self.config['detection']['playwright_fallback_min']
-        fallback_max = self.config['detection']['playwright_fallback_max']
-
-        if fallback_min <= fast_result['score'] <= fallback_max:
-            logger.info(f"{domain}: Fast check score {fast_result['score']}, running Playwright fallback")
-            playwright_result = self.playwright_check(domain)
-
-            # Combine signals from both methods
-            combined_signals = {**fast_result['signals'], **playwright_result['signals']}
-            combined_score = self._calculate_score(combined_signals)
-
-            return {
-                'domain': domain,
-                'detected': combined_score >= self.threshold,
-                'score': combined_score,
-                'signals': combined_signals,
-                'method': 'combined',
-                'timestamp': datetime.utcnow().isoformat()
-            }
-
-        # Fast check was conclusive
-        return {
-            'domain': domain,
-            'detected': fast_result['detected'],
-            'score': fast_result['score'],
-            'signals': fast_result['signals'],
-            'method': 'fast',
-            'timestamp': datetime.utcnow().isoformat()
-        }
-
-    def fast_check(self, domain: str) -> Dict:
-        """
-        Fast HTML-based detection using requests and BeautifulSoup.
-
-        Checks for:
-        - Script tags with zendesk.com or zdassets.com
-        - Links to help.*.zendesk.com
-        - /hc/ paths in URLs
-        - Zendesk cookies in response headers
-        - DOM classes containing 'zendesk'
+        Escalation order:
+        1. Fast requests check
+        2. If blocked (403/406/429) → try cloudscraper (if enabled)
+        3. If still blocked or score in threshold range → try Playwright
 
         Args:
             domain: Company domain
 
         Returns:
-            dict: Detection result with signals
+            dict: Detection results with escalation metadata
+        """
+        logger.info(f"Starting detection for {domain}")
+
+        # Force Playwright mode
+        if self.force_playwright:
+            logger.info(f"{domain}: Force Playwright mode enabled")
+            return self._detect_with_playwright(domain, method='playwright_forced')
+
+        # Stage 1: Fast requests check
+        fast_result = self._fast_check(domain)
+
+        # Check if we got blocked
+        blocked = fast_result.get('blocked_by_waf', False)
+        original_status = fast_result.get('original_status_code', 200)
+
+        # Log blocking event
+        if blocked:
+            self._log_blocking_event(domain, original_status, fast_result.get('original_headers', {}))
+
+        # Decide on escalation
+        if self.no_escalation:
+            logger.info(f"{domain}: No escalation mode, returning fast check result")
+            return fast_result
+
+        # Escalation logic
+        should_escalate = False
+
+        # Escalate if blocked
+        if blocked:
+            should_escalate = True
+            logger.warning(f"{domain}: Blocked (status {original_status}), escalating")
+
+        # Escalate if score is in the threshold range
+        elif 0 < fast_result['score'] < self.threshold:
+            should_escalate = True
+            logger.info(f"{domain}: Score {fast_result['score']} in threshold range, escalating")
+
+        if not should_escalate:
+            logger.info(f"{domain}: No escalation needed (score={fast_result['score']})")
+            return fast_result
+
+        # Stage 2: Try cloudscraper (if enabled and blocked)
+        if self.use_cloudscraper and blocked:
+            logger.info(f"{domain}: Attempting cloudscraper bypass")
+            cloudscraper_result = self._cloudscraper_check(domain)
+
+            # If cloudscraper succeeded and wasn't blocked
+            if not cloudscraper_result.get('blocked_by_waf', False):
+                logger.info(f"{domain}: Cloudscraper bypass successful")
+                return cloudscraper_result
+
+            logger.info(f"{domain}: Cloudscraper also blocked, trying Playwright")
+
+        # Stage 3: Playwright fallback
+        if PLAYWRIGHT_AVAILABLE:
+            logger.info(f"{domain}: Running Playwright check")
+            playwright_result = self._detect_with_playwright(domain, method='playwright_escalated')
+
+            # Combine signals from fast check and Playwright
+            combined_signals = {**fast_result.get('signals', {}), **playwright_result.get('signals', {})}
+            playwright_result['signals'] = combined_signals
+            playwright_result['score'] = self._calculate_score(combined_signals)
+            playwright_result['detected'] = playwright_result['score'] >= self.threshold
+
+            return playwright_result
+        else:
+            logger.warning(f"{domain}: Playwright not available, returning fast check result")
+            return fast_result
+
+    def _fast_check(self, domain: str) -> Dict:
+        """
+        Fast HTML check using requests.
+
+        Returns:
+            dict: Detection result with blocking metadata
         """
         signals = {}
         url = f"https://{domain}"
+        blocked_by_waf = False
+        original_status_code = None
+        original_headers = {}
 
         try:
-            # Make HTTP request
             headers = {'User-Agent': self.user_agent}
-            response = requests.get(
-                url,
-                headers=headers,
-                timeout=self.timeout,
-                allow_redirects=True
-            )
+            response = requests.get(url, headers=headers, timeout=self.timeout, allow_redirects=True)
+
+            original_status_code = response.status_code
+            original_headers = dict(response.headers)
+
+            # Check if blocked
+            if response.status_code in self.BLOCKING_STATUS_CODES:
+                blocked_by_waf = True
+                logger.warning(f"{domain}: Blocked with status {response.status_code}")
+
+                return {
+                    'domain': domain,
+                    'detected': False,
+                    'score': 0,
+                    'signals': {},
+                    'method': 'fast_blocked',
+                    'blocked_by_waf': True,
+                    'original_status_code': original_status_code,
+                    'original_headers': json.dumps(original_headers),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+
             response.raise_for_status()
 
             # Parse HTML
@@ -142,7 +203,7 @@ class ZendeskDetector:
                 if 'zdassets.com' in src or 'zdcdn' in src:
                     signals['cdn_zdassets'] = True
 
-            # Check 2: Links to Zendesk help pages
+            # Check 2: Links
             for link in soup.find_all('a', href=True):
                 href = link['href'].lower()
                 if '.zendesk.com' in href:
@@ -164,77 +225,144 @@ class ZendeskDetector:
                     signals['dom_class_zendesk'] = True
                     break
 
-            # Calculate score
             score = self._calculate_score(signals)
 
-            logger.info(f"{domain}: Fast check found {len(signals)} signals, score={score}")
+            logger.info(f"{domain}: Fast check - {len(signals)} signals, score={score}")
 
             return {
                 'domain': domain,
                 'detected': score >= self.threshold,
                 'score': score,
-                'signals': signals
+                'signals': signals,
+                'method': 'fast',
+                'blocked_by_waf': False,
+                'original_status_code': original_status_code,
+                'original_headers': json.dumps(original_headers),
+                'timestamp': datetime.utcnow().isoformat()
             }
 
         except requests.exceptions.RequestException as e:
-            logger.warning(f"{domain}: Fast check failed - {str(e)}")
+            logger.warning(f"{domain}: Request failed - {str(e)}")
             return {
                 'domain': domain,
                 'detected': False,
                 'score': 0,
                 'signals': {},
-                'error': str(e)
+                'method': 'fast_error',
+                'blocked_by_waf': False,
+                'original_status_code': original_status_code or 0,
+                'original_headers': json.dumps(original_headers),
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
             }
 
-    def playwright_check(self, domain: str) -> Dict:
+    def _cloudscraper_check(self, domain: str) -> Dict:
         """
-        JavaScript-rendered detection using Playwright.
-
-        Checks for:
-        - window.zE, window.Zendesk, window.Zopim globals
-        - Network requests to zendesk.com or zdassets.com
-        - DOM elements after JS rendering
-
-        Args:
-            domain: Company domain
+        Check using cloudscraper to bypass Cloudflare.
 
         Returns:
-            dict: Detection result with additional JS-based signals
+            dict: Detection result
         """
+        if not CLOUDSCRAPER_AVAILABLE:
+            return {'blocked_by_waf': True, 'error': 'Cloudscraper not available'}
+
         signals = {}
+        url = f"https://{domain}"
 
         try:
-            # Import Playwright only when needed
-            from playwright.sync_api import sync_playwright
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, timeout=self.timeout)
 
-            url = f"https://{domain}"
+            if response.status_code in self.BLOCKING_STATUS_CODES:
+                logger.warning(f"{domain}: Cloudscraper also blocked ({response.status_code})")
+                return {
+                    'domain': domain,
+                    'detected': False,
+                    'score': 0,
+                    'signals': {},
+                    'method': 'cloudscraper_blocked',
+                    'blocked_by_waf': True,
+                    'original_status_code': response.status_code,
+                    'original_headers': json.dumps(dict(response.headers)),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
 
+            # Parse HTML (same logic as fast check)
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Reuse signal detection logic
+            for script in soup.find_all('script', src=True):
+                src = script['src'].lower()
+                if 'zendesk.com' in src:
+                    signals['script_zendesk'] = True
+                if 'zdassets.com' in src:
+                    signals['cdn_zdassets'] = True
+
+            score = self._calculate_score(signals)
+
+            return {
+                'domain': domain,
+                'detected': score >= self.threshold,
+                'score': score,
+                'signals': signals,
+                'method': 'cloudscraper',
+                'blocked_by_waf': False,
+                'original_status_code': response.status_code,
+                'original_headers': json.dumps(dict(response.headers)),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+
+        except Exception as e:
+            logger.warning(f"{domain}: Cloudscraper failed - {str(e)}")
+            return {'blocked_by_waf': True, 'error': str(e)}
+
+    def _detect_with_playwright(self, domain: str, method: str = 'playwright') -> Dict:
+        """
+        Playwright-based detection (full browser).
+
+        Args:
+            domain: Domain to check
+            method: Method name for logging
+
+        Returns:
+            dict: Detection result
+        """
+        signals = {}
+        url = f"https://{domain}"
+
+        try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
+                page = browser.new_page(user_agent=self.user_agent)
 
                 # Track network requests
                 network_requests = []
-
                 def handle_request(request):
                     network_requests.append(request.url)
-
                 page.on('request', handle_request)
 
-                # Navigate to page
-                page.goto(url, wait_until='networkidle', timeout=30000)
+                # Navigate
+                try:
+                    page.goto(url, wait_until='networkidle', timeout=30000)
+                except Exception as nav_error:
+                    logger.warning(f"{domain}: Playwright navigation failed - {str(nav_error)}")
+                    browser.close()
+                    return {
+                        'domain': domain,
+                        'detected': False,
+                        'score': 0,
+                        'signals': {},
+                        'method': f'{method}_error',
+                        'blocked_by_waf': True,
+                        'error': str(nav_error),
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
 
-                # Check for window globals
-                window_ze = page.evaluate('() => typeof window.zE !== "undefined"')
-                window_zendesk = page.evaluate('() => typeof window.Zendesk !== "undefined"')
-                window_zopim = page.evaluate('() => typeof window.Zopim !== "undefined"')
-
-                if window_ze:
+                # Check window globals
+                if page.evaluate('() => typeof window.zE !== "undefined"'):
                     signals['window_ze'] = True
-                if window_zendesk:
+                if page.evaluate('() => typeof window.Zendesk !== "undefined"'):
                     signals['window_zendesk'] = True
-                if window_zopim:
-                    signals['window_zendesk'] = True  # Zopim is Zendesk Chat
 
                 # Check network requests
                 for req_url in network_requests:
@@ -242,81 +370,68 @@ class ZendeskDetector:
                         signals['xhr_zendesk'] = True
                         break
 
-                # Re-check DOM after JS render
-                html = page.content()
-                if 'zendesk' in html.lower() or 'zd-widget' in html.lower():
+                # Check DOM
+                html = page.content().lower()
+                if 'zendesk' in html or 'zd-widget' in html:
                     signals['dom_class_zendesk'] = True
 
                 browser.close()
 
             score = self._calculate_score(signals)
 
-            logger.info(f"{domain}: Playwright check found {len(signals)} signals, score={score}")
+            logger.info(f"{domain}: Playwright - {len(signals)} signals, score={score}")
 
             return {
                 'domain': domain,
                 'detected': score >= self.threshold,
                 'score': score,
-                'signals': signals
+                'signals': signals,
+                'method': method,
+                'blocked_by_waf': False,
+                'timestamp': datetime.utcnow().isoformat()
             }
 
         except Exception as e:
-            logger.warning(f"{domain}: Playwright check failed - {str(e)}")
+            logger.error(f"{domain}: Playwright error - {str(e)}")
             return {
                 'domain': domain,
                 'detected': False,
                 'score': 0,
                 'signals': {},
-                'error': str(e)
+                'method': f'{method}_error',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
             }
 
     def _calculate_score(self, signals: Dict) -> int:
-        """
-        Calculate detection score based on weighted signals.
-
-        Args:
-            signals: Dictionary of detected signals
-
-        Returns:
-            int: Total score
-        """
+        """Calculate score from signals."""
         score = 0
         for signal_name, detected in signals.items():
             if detected and signal_name in self.weights:
                 score += self.weights[signal_name]
-
         return score
 
+    def _log_blocking_event(self, domain: str, status_code: int, headers: dict):
+        """
+        Log structured blocking event.
 
-# ==============================================================================
-# TESTING
-# ==============================================================================
+        Args:
+            domain: Blocked domain
+            status_code: HTTP status code
+            headers: Response headers
+        """
+        event = {
+            'event': 'blocked_by_waf',
+            'timestamp': datetime.utcnow().isoformat(),
+            'domain': domain,
+            'status_code': status_code,
+            'headers': headers,
+            'suggested_actions': [
+                'Try --use-cloudscraper flag',
+                'Try --use-playwright flag',
+                'Use residential proxies with --proxy-file',
+                'Manual review may be needed'
+            ]
+        }
 
-if __name__ == "__main__":
-    import sys
-
-    # Test on a known Zendesk user
-    detector = ZendeskDetector()
-
-    test_domains = [
-        "shopify.com",      # Known Zendesk user
-        "stripe.com",       # Known Zendesk user
-        "google.com",       # Not using Zendesk (probably)
-    ]
-
-    for domain in test_domains:
-        print(f"\n{'='*60}")
-        print(f"Testing: {domain}")
-        print('='*60)
-
-        result = detector.fast_check(domain)
-
-        print(f"Detected: {result['detected']}")
-        print(f"Score: {result['score']}")
-        print(f"Signals: {result['signals']}")
-
-        if result['score'] > 0 and result['score'] < 100:
-            print(f"\nRunning Playwright fallback...")
-            full_result = detector.detect(domain)
-            print(f"Final detected: {full_result['detected']}")
-            print(f"Final score: {full_result['score']}")
+        logger.warning(f"BLOCKED: {json.dumps(event)}")
