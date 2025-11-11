@@ -225,6 +225,26 @@ class LeadStorage:
         conn.close()
         return exists
 
+    def get_processed_domains(self) -> set:
+        """
+        Get set of all domains that have already been processed.
+
+        Returns:
+            set: Set of domain strings
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('SELECT domain FROM leads')
+            domains = {row[0] for row in cursor.fetchall()}
+            return domains
+        except sqlite3.OperationalError:
+            # Table doesn't exist yet
+            return set()
+        finally:
+            conn.close()
+
     def get_lead(self, domain: str) -> Optional[Dict]:
         """
         Retrieve a lead by domain.

@@ -88,6 +88,8 @@ class LeadPipeline:
         """
         Load domains from input CSV.
 
+        If --resume flag is set, filters out already-processed domains.
+
         Returns:
             list: List of domain strings
         """
@@ -101,7 +103,26 @@ class LeadPipeline:
                 if domain:
                     domains.append(domain)
 
-        logger.info(f"Loaded {len(domains)} domains from {self.args.input}")
+        total_loaded = len(domains)
+        logger.info(f"Loaded {total_loaded} domains from {self.args.input}")
+
+        # Resume functionality: skip already-processed domains
+        if self.args.resume:
+            processed_domains = self.storage.get_processed_domains()
+            if processed_domains:
+                original_count = len(domains)
+                domains = [d for d in domains if d not in processed_domains]
+                skipped = original_count - len(domains)
+                logger.info(f"Resume mode: Skipping {skipped} already-processed domains")
+                print(f"\n🔄 Resume mode enabled:")
+                print(f"  Total domains: {original_count}")
+                print(f"  Already processed: {skipped}")
+                print(f"  Remaining: {len(domains)}")
+
+                if len(domains) == 0:
+                    print("\n✅ All domains already processed!")
+                    return []
+
         return domains
 
     def process_domain(self, domain: str) -> Dict:
@@ -223,6 +244,12 @@ class LeadPipeline:
 
                         results.append(result)
 
+                        # Save immediately (incremental save for crash recovery)
+                        try:
+                            self.storage.save_lead(result)
+                        except Exception as save_error:
+                            logger.error(f"Failed to save {domain}: {save_error}")
+
                         # Update counters
                         if result.get('detected_zendesk'):
                             detected += 1
@@ -255,6 +282,12 @@ class LeadPipeline:
                     continue
 
                 results.append(result)
+
+                # Save immediately (incremental save for crash recovery)
+                try:
+                    self.storage.save_lead(result)
+                except Exception as save_error:
+                    logger.error(f"Failed to save {domain}: {save_error}")
 
                 # Update counters
                 if result.get('detected_zendesk'):
@@ -365,6 +398,10 @@ Examples:
                         help='Number of concurrent threads (default: 1)')
     parser.add_argument('--rate-limit', type=float, default=1.0,
                         help='Requests per second (default: 1.0)')
+
+    # Resume support
+    parser.add_argument('--resume', action='store_true',
+                        help='Resume from existing results (skip already-processed domains)')
 
     # Proxy support
     parser.add_argument('--proxy-file',
