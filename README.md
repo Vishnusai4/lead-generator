@@ -46,7 +46,23 @@ Automatically identifies companies using Zendesk through multi-tier detection wi
 
 ## Quick Start
 
-### Docker (Recommended)
+### Google Colab (Easiest - No Setup Required) 🚀
+
+**Run in your browser with one click - no installation needed!**
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vishnusai4/lead-generator/blob/main/run_on_colab.ipynb)
+
+1. Click the badge above
+2. Click "Runtime" → "Run all"
+3. Wait ~45 minutes for 25K domains
+4. Download results as CSV
+
+✅ No proxy blocking
+✅ Free tier (12-hour sessions)
+✅ Pre-configured with ScraperAPI
+✅ See [COLAB_QUICKSTART.md](COLAB_QUICKSTART.md) for details
+
+### Docker (Recommended for Self-Hosting)
 
 ```bash
 # 1. Clone repository
