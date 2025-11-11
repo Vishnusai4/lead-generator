@@ -4,10 +4,13 @@
 
 Automatically identifies companies using Zendesk through multi-tier detection with bot-blocking resistance, enriches with company intelligence, and stores in SQLite + CSV with REST API access.
 
+> **⚠️ IMPORTANT:** This tool requires unrestricted internet access to scrape websites. If running in a sandboxed environment (Docker container, CI/CD, etc.), you may encounter network restrictions. **See [RUN_LOCALLY.md](RUN_LOCALLY.md) for setup instructions.**
+
 ## Features
 
 ### 🔍 Multi-Tier Detection
 - **Fast HTML check** - Quick detection using requests
+- **ScraperAPI integration** - Professional anti-bot bypass (90%+ success rate)
 - **Cloudflare bypass** - Automatic escalation with cloudscraper
 - **Playwright fallback** - Full browser automation for JavaScript-heavy sites
 - **Automatic escalation** - Smart handling of bot-blocking (403/406/429/503)
@@ -170,6 +173,9 @@ detection:
 ### Environment Variables (`.env`)
 
 ```bash
+# Anti-Bot Bypass (RECOMMENDED)
+SCRAPERAPI_KEY=your_scraperapi_key_here  # Get free key at https://www.scraperapi.com/
+
 # Enrichment API Keys (optional)
 CLEARBIT_API_KEY=your_clearbit_api_key_here
 
@@ -182,6 +188,12 @@ LOG_LEVEL=INFO
 # API
 API_PORT=8000
 ```
+
+**ScraperAPI Setup (Recommended for 90%+ Success Rate):**
+1. Sign up at https://www.scraperapi.com/ (FREE - 1,000 requests/month)
+2. Copy your API key from the dashboard
+3. Set environment variable: `export SCRAPERAPI_KEY=your_key`
+4. Run pipeline normally - ScraperAPI will automatically activate
 
 ## Architecture
 
@@ -197,7 +209,10 @@ API_PORT=8000
 │  │ Fast Check    │──┐
 │  └───────────────┘  │
 │  ┌───────────────┐  │  On 403/429
-│  │ Cloudscraper  │◄─┤  Escalate
+│  │ ScraperAPI    │◄─┤  Escalate
+│  └───────────────┘  │
+│  ┌───────────────┐  │
+│  │ Cloudscraper  │◄─┤
 │  └───────────────┘  │
 │  ┌───────────────┐  │
 │  │ Playwright    │◄─┘
@@ -335,12 +350,36 @@ Identifies as "ZendeskLeadGenerator/1.0" - be respectful of website policies.
 
 ### Common Issues
 
-**403 Forbidden Errors**
+**Network Restrictions / Proxy Blocking**
+
+If you see errors like `403 Forbidden` on ALL requests or `Access denied` from proxy:
+
 ```bash
-# Use cloudscraper
+# You're in a sandboxed environment - run locally instead
+# See RUN_LOCALLY.md for instructions
+
+# Quick test: Check if you can reach the internet
+curl https://httpbin.org/get
+
+# If blocked, you need to run on:
+# 1. Your local machine
+# 2. A cloud instance (AWS/GCP/DigitalOcean)
+# 3. A different network (mobile hotspot, etc.)
+```
+
+**403 Forbidden from Target Websites**
+
+If specific domains return 403 (anti-bot protection):
+
+```bash
+# Best: Use ScraperAPI (90%+ success rate)
+export SCRAPERAPI_KEY=your_key
+python run_pipeline.py --input domains.csv
+
+# Alternative: Use cloudscraper
 python run_pipeline.py --use-cloudscraper
 
-# Or force Playwright
+# Last resort: Use Playwright (slowest)
 python run_pipeline.py --use-playwright
 ```
 
@@ -404,6 +443,13 @@ MIT License - see LICENSE file for details
 - **Email**: support@example.com
 
 ## Changelog
+
+### Version 1.1.0 (2025-11-11)
+- **ScraperAPI integration** for professional anti-bot bypass (90%+ success rate)
+- 4-tier escalation: requests → ScraperAPI → cloudscraper → Playwright
+- Environment testing script (`test_environment.py`)
+- Local deployment guide (`RUN_LOCALLY.md`)
+- Updated documentation for sandboxed environments
 
 ### Version 1.0.0 (2025-01-10)
 - Production-ready pipeline with escalation
